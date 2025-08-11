@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mermaid Chart Maker - Split View</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #4361ee;
+      --primary-dark: #3a56d4;
+      --secondary: #7209b7;
+      --success: #06d6a0;
+      --danger: #ef476f;
+      --warning: #ffd166;
+      --dark: #2b2d42;
+      --light: #f8f9fa;
+      --gray: #8d99ae;
+      --border: #dee2e6;
+      --editor-bg: #ffffff;
+      --editor-text: #333333;
+      --preview-bg: #f5f7fa;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--light);
+      color: var(--dark);
+      line-height: 1.6;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* Header */
+    header {
+      background: var(--dark);
+      color: white;
+      padding: 0.8rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      background: var(--primary);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--secondary);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+
+    .btn-light {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    .btn-light:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Main content */
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Split Panels */
+    .split-panel {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .panel-header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .panel-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: #333;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    /* Editor */
+    #code {
+      flex: 1;
+      width: 100%;
+      padding: 20px;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 15px;
+      line-height: 1.5;
+      border: none;
+      resize: none;
+      background: var(--editor-bg);
+      color: var(--editor-text);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    #code:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 2px var(--primary);
+    }
+
+    /* Preview */
+    #preview {
+      flex: 1;
+      padding: 30px;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--preview-bg);
+    }
+
+    #preview svg {
+      max-width: 100%;
+      max-height: 100%;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .error-message {
+      background: #ffebee;
+      color: #b71c1c;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: monospace;
+      max-width: 800px;
+    }
+
+    /* Divider */
+    .divider {
+      width: 8px;
+      background: var(--border);
+      cursor: col-resize;
+      transition: background 0.2s;
+    }
+
+    .divider:hover {
+      background: var(--primary);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--dark);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Full Preview Mode */
+    .full-preview {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+    }
+
+    .full-preview-header {
+      padding: 12px 20px;
+      background: var(--dark);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .full-preview-content {
+      flex: 1;
+      padding: 30px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .split-panel {
+        flex-direction: column;
+      }
+      
+      .divider {
+        width: 100%;
+        height: 8px;
+        cursor: row-resize;
+      }
+      
+      .logo h1 {
+        font-size: 1.2rem;
+      }
+      
+      .btn span {
+        display: none;
+      }
+      
+      .btn i {
+        margin-right: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Main Editor View -->
+    <header>
+      <div class="logo">
+        <div class="logo-icon">
+          <i class="fas fa-diagram-project"></i>
+        </div>
+        <h1>Mermaid Chart Maker</h1>
+      </div>
+      <div class="header-controls">
+        <button class="btn btn-primary" id="viewFullBtn">
+          <i class="fas fa-expand"></i>
+          <span>Full View</span>
+        </button>
+      </div>
+    </header>
+    
+    <div class="main-container">
+      <div class="split-panel">
+        <!-- Editor Panel -->
+        <div class="panel" id="editorPanel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fas fa-code"></i> Mermaid Code
+            </div>
+            <div class="panel-controls">
+              <button class="btn btn-sm btn-success" id="copyBtn">
+                <i class="fas fa-copy"></i> Copy
+              </button>
+              <button class="btn btn-sm btn-warning" id="formatBtn">
+                <i class="fas fa-align-left"></i> Format
+              </button>
+              <button class="btn btn-sm btn-danger" id="clearBtn">
+                <i class="fas fa-eraser"></i> Clear
+              </button>
+            </div>
+          </div>
+          <textarea id="code" spellcheck="false">graph TD
+    A[Start] --> B{Decision?}
+    B -->|Yes| C[Option 1]
+    B -->|No| D[Option 2]
+    C --> E[End]
+    D --> E
+    
+    style A fill:#4361ee,stroke:#333,color:#fff
+    style E fill:#06d6a0,stroke:#333,color:#fff
+    style B fill:#ffd166,stroke:#333,color:#333</textarea>
+        </div>
+        
+        <!-- Divider -->
+        <div class="divider" id="divider"></div>
+        
+        <!-- Preview Panel -->
+        <div class="panel" id="previewPanel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fas fa-chart-line"></i> Chart Preview
+            </div>
+            <div class="panel-controls">
+              <button class="btn btn-sm btn-primary" id="downloadSVG">
+                <i class="fas fa-download"></i> SVG
+              </button>
+              <button class="btn btn-sm btn-primary" id="downloadPNG">
+                <i class="fas fa-download"></i> PNG
+              </button>
+              <button class="btn btn-sm btn-secondary" id="shareBtn">
+                <i class="fas fa-share-alt"></i> Share
+              </button>
+            </div>
+          </div>
+          <div id="preview">
+            <div style="text-align: center; color: #666;">
+              <i class="fas fa-diagram-project fa-3x" style="opacity: 0.3; margin-bottom: 10px;"></i>
+              <p>Your diagram will appear here</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Full Preview Mode -->
+    <div class="full-preview" id="fullPreview">
+      <div class="full-preview-header">
+        <div>
+          <h2>Full Screen Preview</h2>
+        </div>
+        <div>
+          <button class="btn btn-light" id="exitFullBtn">
+            <i class="fas fa-times"></i> Exit
+          </button>
+        </div>
+      </div>
+      <div class="full-preview-content" id="fullPreviewContent"></div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+      <i class="fas fa-check-circle"></i>
+      <span id="toastMessage">Message copied to clipboard!</span>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const codeTextarea = document.getElementById('code');
+    const previewDiv = document.getElementById('preview');
+    const fullPreview = document.getElementById('fullPreview');
+    const fullPreviewContent = document.getElementById('fullPreviewContent');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+    const divider = document.getElementById('divider');
+    const editorPanel = document.getElementById('editorPanel');
+    const previewPanel = document.getElementById('previewPanel');
+
+    // State variables
+    let svgData = '';
+    let isDragging = false;
+    
+    // Initialize Mermaid
+    mermaid.initialize({ 
+      startOnLoad: false,
+      theme: 'default',
+      fontFamily: 'Segoe UI, sans-serif',
+      flowchart: {
+        curve: 'basis',
+        useMaxWidth: true
+      }
+    });
+    
+    // Show toast notification
+    function showToast(message, duration = 3000) {
+      toastMessage.textContent = message;
+      toast.classList.add('show');
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, duration);
+    }
+    
+    // Render the diagram
+    function renderDiagram() {
+      const code = codeTextarea.value;
+      
+      // Skip empty code
+      if (!code.trim()) {
+        previewDiv.innerHTML = '<div style="text-align: center; color: #666;"><i class="fas fa-diagram-project fa-3x" style="opacity: 0.3; margin-bottom: 10px;"></i><p>Your diagram will appear here</p></div>';
+        return;
+      }
+      
+      previewDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Rendering...</div>';
+      
+      try {
+        mermaid.render('mermaid-svg', code).then(({ svg }) => {
+          svgData = svg;
+          previewDiv.innerHTML = svg;
+          
+          // Update full preview if open
+          if (fullPreview.style.display === 'flex') {
+            fullPreviewContent.innerHTML = svg;
+          }
+        }).catch(err => {
+          previewDiv.innerHTML = `<div class="error-message">
+            <h3><i class="fas fa-exclamation-triangle"></i> Rendering Error</h3>
+            <p>${err.message}</p>
+            <pre>${err.str || ''}</pre>
+          </div>`;
+        });
+      } catch (err) {
+        previewDiv.innerHTML = `<div class="error-message">
+          <h3><i class="fas fa-exclamation-triangle"></i> Syntax Error</h3>
+          <p>${err.message}</p>
+        </div>`;
+      }
+    }
+    
+    // Format code
+    function formatCode() {
+      const code = codeTextarea.value;
+      const lines = code.split('\n');
+      let formatted = [];
+      let indentLevel = 0;
+      
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        
+        if (trimmed === '') {
+          formatted.push('');
+          return;
+        }
+        
+        // Decrease indent for end keywords
+        if (trimmed.startsWith('end') || trimmed.startsWith('}')) {
+          indentLevel = Math.max(0, indentLevel - 1);
+        }
+        
+        // Add current line with proper indentation
+        formatted.push('    '.repeat(indentLevel) + trimmed);
+        
+        // Increase indent for subgraphs and style blocks
+        if (trimmed.startsWith('subgraph') || trimmed.startsWith('style') || 
+            trimmed.startsWith('classDef') || trimmed.endsWith('{')) {
+          indentLevel++;
+        }
+      });
+      
+      codeTextarea.value = formatted.join('\n');
+      showToast('Code formatted!');
+      renderDiagram();
+    }
+    
+    // Resize panels
+    function setupResizer() {
+      divider.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        document.body.style.cursor = 'col-resize';
+        document.addEventListener('mousemove', resize);
+        document.addEventListener('mouseup', stopResize);
+      });
+      
+      function resize(e) {
+        if (!isDragging) return;
+        
+        const containerWidth = document.querySelector('.split-panel').offsetWidth;
+        const editorWidth = (e.clientX / containerWidth) * 100;
+        
+        editorPanel.style.width = `${editorWidth}%`;
+        previewPanel.style.width = `${100 - editorWidth}%`;
+      }
+      
+      function stopResize() {
+        isDragging = false;
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', resize);
+      }
+    }
+    
+    // Event listeners
+    codeTextarea.addEventListener('input', () => {
+      // Debounce rendering to avoid performance issues
+      clearTimeout(codeTextarea._timer);
+      codeTextarea._timer = setTimeout(renderDiagram, 500);
+    });
+    
+    // Copy code
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      codeTextarea.select();
+      document.execCommand('copy');
+      showToast('Code copied to clipboard!');
+    });
+    
+    // Clear editor
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear the editor?')) {
+        codeTextarea.value = '';
+        renderDiagram();
+        showToast('Editor cleared!');
+      }
+    });
+    
+    // Format code
+    document.getElementById('formatBtn').addEventListener('click', formatCode);
+    
+    // Download SVG
+    document.getElementById('downloadSVG').addEventListener('click', () => {
+      if (!svgData) {
+        showToast('No chart to download!', 2000);
+        return;
+      }
+      
+      const blob = new Blob([svgData], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mermaid-diagram.svg';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('SVG downloaded successfully!');
+    });
+    
+    // Download PNG - High Quality Version
+    document.getElementById('downloadPNG').addEventListener('click', () => {
+      const svgEl = previewDiv.querySelector('svg');
+      if (!svgEl) {
+        showToast('No chart to download!', 2000);
+        return;
+      }
+      
+      // Create a canvas with higher resolution
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Get SVG dimensions
+      const svgRect = svgEl.getBoundingClientRect();
+      const scale = 4; // Scale factor for higher quality
+      
+      // Set canvas dimensions (scaled up)
+      canvas.width = svgRect.width * scale;
+      canvas.height = svgRect.height * scale;
+      
+      // Set canvas CSS size (display size)
+      canvas.style.width = svgRect.width + 'px';
+      canvas.style.height = svgRect.height + 'px';
+      
+      // Scale the context to ensure high quality
+      ctx.scale(scale, scale);
+      
+      // Create SVG data URL
+      const svgDataURL = new XMLSerializer().serializeToString(svgEl);
+      const img = new Image();
+      
+      img.onload = () => {
+        // Fill with white background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw the SVG image
+        ctx.drawImage(img, 0, 0, svgRect.width, svgRect.height);
+        
+        // Create PNG with high quality
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'mermaid-diagram.png';
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast('High-quality PNG downloaded successfully!');
+        }, 'image/png', 1.0); // Highest quality
+      };
+      
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgDataURL)));
+    });
+    
+    // Share Link
+    document.getElementById('shareBtn').addEventListener('click', () => {
+      const code = codeTextarea.value;
+      const encoded = encodeURIComponent(code);
+      const url = location.origin + location.pathname + '?chart=' + encoded;
+      
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Share link copied to clipboard!');
+      }).catch(err => {
+        showToast('Failed to copy link: ' + err);
+      });
+    });
+    
+    // Full view toggle
+    document.getElementById('viewFullBtn').addEventListener('click', () => {
+      fullPreview.style.display = 'flex';
+      fullPreviewContent.innerHTML = previewDiv.innerHTML;
+      document.body.style.overflow = 'hidden';
+    });
+    
+    document.getElementById('exitFullBtn').addEventListener('click', () => {
+      fullPreview.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    });
+    
+    // Load from URL
+    window.addEventListener('DOMContentLoaded', () => {
+      setupResizer();
+      renderDiagram();
+      
+      const params = new URLSearchParams(location.search);
+      const codeParam = params.get('chart');
+      if (codeParam) {
+        codeTextarea.value = decodeURIComponent(codeParam);
+        renderDiagram();
+      }
+    });
+  </script>
+</body>
+</html>
